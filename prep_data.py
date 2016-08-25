@@ -1,28 +1,125 @@
 import os
-import csv
+import sqlite3
 from dbfread import DBF
+
 
 root_dir = os.path.dirname(__file__)
 data_dir = os.path.join(root_dir, 'data')
 
-rds_dbf_path = os.path.join(data_dir, 'Emergency_RDS_line.dbf')
-output_csv = os.path.join(data_dir, 'raw_rds.csv')
+db_path = os.path.join(data_dir, 'data.db')
+conn = sqlite3.connect(db_path)
+c = conn.cursor()
 
-with open(output_csv, 'wb') as the_output:
-    csvWriter = csv.writer(the_output)
-    csvWriter.writerow(['street_name', 'town'])
-
-    # pull only columns 2, 6 and 24
-    for record in DBF(rds_dbf_path, 'utf-8', [6, 24]):
-        csvWriter.writerow([record['SN'], record['LTWN']])
+def insert_into_db():
 
 
-# Insert rows into sqlite3
+	try:
+		c.execute('SELECT * FROM road_names_raw LIMIT 10')
 
-# GROUP BY town - verify no weird towns
+	except sqlite3.OperationalError:
+		c.execute('CREATE TABLE road_names_raw (id integer primary key autoincrement, town text, street_name text)')
 
-# Read results and tokenize, removing stop words
+		rds_dbf_path = os.path.join(data_dir, 'Emergency_RDS_line.dbf')
+		insert_sql = 'INSERT INTO road_names_raw (town, street_name) VALUES (?,?)'
 
-# CREATE / Drop table and write tokenized words individually
+	    # pull only columns 6 and 24
+		for record in DBF(rds_dbf_path, 'utf-8', [6, 24]):
+			c.execute(insert_sql, (record['LTWN'], record['SN']))
+
+		conn.commit()
+
+	try:
+		c.execute('SELECT * FROM town_boundaries_shp LIMIT 10')
+
+	except sqlite3.OperationalError:
+		c.execute('CREATE TABLE town_boundaries_shp (id integer primary key autoincrement, fips text, town text)')
+
+		town_dbf_path = os.path.join(data_dir, 'Boundary_TWNBNDS_poly.dbf')
+		insert_sql = 'INSERT INTO town_boundaries_shp (fips, town) VALUES (?,?)'
+
+	    # pull only columns 6 and 24
+		for record in DBF(town_dbf_path, 'utf-8', [0, 1]):
+			print record['FIPS6'], record['TOWNNAME']
+			c.execute(insert_sql, (record['FIPS6'], record['TOWNNAME']))
+
+		conn.commit()
+
+
+def update_town_names():
+
+	unmatched_towns_sql = 'SELECT road_names_raw.town ' \
+	                      'FROM road_names_raw  ' \
+					      'LEFT OUTER JOIN town_boundaries_shp ON road_names_raw.town = town_boundaries_shp.town ' \
+					      'WHERE town_boundaries_shp.town IS NULL ' \
+					      'GROUP BY road_names_raw.town'
+
+	unmatched_rows = c.execute(unmatched_towns_sql).fetchall()
+
+	delete_list = ['CAUCA, QUEBEC, CA', 'COOS COUNTY, NH', 'WASHINGTON COUNTY, NY']
+
+	for delete_town in delete_list:
+		c.execute('DELETE FROM road_names_raw WHERE town = ?', (delete_town,))
+
+	update_dict = {'BELLOWS FALLS': 'ROCKINGHAM', 'ENOSBURGH': 'ENOSBURG', 'ESSEX JUNCTION VILLAGE': 'ESSEX',
+	               'ESSEX TOWN': 'ESSEX', 'NORTH BENNINGTON': 'BENNINGTON', 'ORLEANS': 'BARTON',
+	               'RUTLAND TOWN': 'RUTLAND', 'SAINT ALBANS CITY': 'ST. ALBANS CITY',
+	               'SAINT ALBANS TOWN': 'ST. ALBANS TOWN', 'SAINT GEORGE': 'ST. GEORGE', 
+	               'SAINT JOHNSBURY': 'ST. JOHNSBURY', 'SAXTONS RIVER': 'ROCKINGHAM', 
+	               'WARRENS GORE': 'WARREN GORE', 'WEST PAWLET': 'PAWLET'}
+
+	for current_town, updated_town in update_dict.iteritems():
+		c.execute('UPDATE road_names_raw SET town = ? WHERE town=?', (updated_town, current_town))
+
+	conn.commit()
+
+	unmatched_rows = c.execute(unmatched_towns_sql).fetchall()
+
+	if unmatched_rows:
+		raise ValueError("Some road_names_raw don't match Boundary_TWNBNDS_poly")
+
+
+def tokenize():
+
+	try:
+		c.execute('SELECT * FROM words_by_town LIMIT 10')
+
+	except sqlite3.OperationalError:
+		c.execute('CREATE TABLE words_by_town (id integer primary key autoincrement, town text, word text)')
+
+		# Important to group by street_name and town here-- don't want to double count
+		# multiple sections of MAIN ST. This is GIS data, after all
+		rows = c.execute('SELECT street_name, town FROM road_names_raw GROUP BY street_name, town').fetchall()
+
+		insert_str = ('INSERT INTO words_by_town (town, word) VALUES (?, ?)')
+
+		skip_words = ['ROUTE', 'VT', 'INTERSTATE', 'US', 'STATE', 'HWY', 'EXT', 'ENT', 'SFH', 'ST', 'RD', 'THE', 'U', 'TURN']
+
+		for row in rows:
+			word_list = row[0].split()
+			town = row[1]
+
+			word_list = filter(lambda w: w not in skip_words, word_list)
+
+			for word in word_list:
+
+				# Filter out route numbers
+				try:
+					int(word)
+
+				except:
+					c.execute(insert_str, (town, word))
+
+		conn.commit()
+
+	print c.execute('SELECT word, count(word) as count FROM words_by_town GROUP BY word ORDER BY count DESC LIMIT 100').fetchall()
+
+
+if __name__ == '__main__':
+	insert_into_db()
+
+	update_town_names()
+
+	tokenize()
+
 
 # GROUP By word, town and COUNT
