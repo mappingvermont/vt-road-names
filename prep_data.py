@@ -1,8 +1,7 @@
 import os
+import csv
 import sqlite3
 from dbfread import DBF
-import fiona
-import csv
 
 
 root_dir = os.path.dirname(__file__)
@@ -30,6 +29,9 @@ def insert_into_db():
 		for record in DBF(rds_dbf_path, 'utf-8', [6, 24]):
 			c.execute(insert_sql, (record['LTWN'], record['SN']))
 
+		# Remove generic TOWN HWY <int> records
+		c.execute('DELETE FROM road_names_raw WHERE street_name LIKE "TOWN HWY%"')
+		
 		conn.commit()
 
 	try:
@@ -52,7 +54,7 @@ def insert_into_db():
 
 def update_town_names():
 
-	print 'Attempted to join towns from road data to towns from boundary data'
+	# print 'Attempted to join towns from road data to towns from boundary data'
 	unmatched_towns_sql = 'SELECT road_names_raw.town ' \
 	                      'FROM road_names_raw  ' \
 					      'LEFT OUTER JOIN town_boundaries_shp ON road_names_raw.town = town_boundaries_shp.town ' \
@@ -95,20 +97,23 @@ def tokenize():
 		c.execute('SELECT * FROM words_by_town LIMIT 10')
 
 	except sqlite3.OperationalError:
-		c.execute('CREATE TABLE words_by_town (id integer primary key autoincrement, town text, word text)')
+		c.execute('CREATE TABLE words_by_town (id integer primary key autoincrement, fips6 int, town text, word text)')
 
 		# Important to group by street_name and town here-- don't want to double count
 		# multiple sections of MAIN ST. This is GIS data, after all
-		rows = c.execute('SELECT street_name, town FROM road_names_raw GROUP BY street_name, town').fetchall()
+		rows = c.execute('SELECT fips, street_name, a.town ' \
+						 'FROM road_names_raw a JOIN town_boundaries_shp b ON a.town = b.town ' \
+						 'GROUP BY street_name, a.town, fips;').fetchall()
 
-		insert_str = ('INSERT INTO words_by_town (town, word) VALUES (?, ?)')
+		insert_str = ('INSERT INTO words_by_town (fips6, town, word) VALUES (?, ?, ?)')
 
 		skip_words = ['ROUTE', 'VT', 'INTERSTATE', 'US', 'STATE', 'HWY', 'EXT', 'ENT', 'SFH', 
-					  'EXIT', 'ENTRACE', 'ST', 'RD', 'THE', 'U', 'TURN']
+					  'EXIT', 'ENTRANCE', 'ST', 'RD', 'THE', 'U', 'TURN']
 
 		for row in rows:
-			word_list = row[0].split()
-			town = row[1]
+			fips6 = row[0]
+			word_list = row[1].split()
+			town = row[2]
 
 			word_list = filter(lambda w: w not in skip_words, word_list)
 
@@ -119,33 +124,12 @@ def tokenize():
 					int(word)
 
 				except:
-					c.execute(insert_str, (town, word))
+					c.execute(insert_str, (fips6, town, word))
 
 		conn.commit()
 
-	print 'Word counts statewide: '
-	print c.execute('SELECT word, count(word) as count FROM words_by_town GROUP BY word ORDER BY count DESC LIMIT 100').fetchall()
-
-
-def write_lookup_titlecase():
-
-	boundary_shp = os.path.join(data_dir, 'Boundary_TWNBNDS_poly.shp')
-	fips_lookup = os.path.join(data_dir, 'fips6_lookup.csv')
-
-	with fiona.open(boundary_shp) as source:
-		with open(fips_lookup, 'wb') as csvFile:
-			csvWriter = csv.writer(csvFile)
-			csvWriter.writerow(['fips6', 'town'])
-
-			for feature in source:
-				att_dict = feature['properties']
-				fips_val = att_dict['FIPS6']
-				town_title_case = att_dict['TOWNNAME'].title()
-				
-				csvWriter.writerow([fips_val, town_title_case])
-
-
-
+	#print 'Word counts statewide: '
+	#print c.execute('SELECT word, count(word) as count FROM words_by_town GROUP BY word ORDER BY count DESC LIMIT 100').fetchall()
 
 
 if __name__ == '__main__':
@@ -154,8 +138,3 @@ if __name__ == '__main__':
 	update_town_names()
 
 	tokenize()
-
-	write_lookup_titlecase()
-
-
-# GROUP By word, town and COUNT

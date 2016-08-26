@@ -39,9 +39,10 @@ def unzip(file_path):
     zip_ref.close()
 
 
-for download_url in [rds_url, town_boundary_url]:
-    local_zip = download_file(download_url)
-    unzip(local_zip)
+if __name__ == '__main__':
+	for download_url in [rds_url, town_boundary_url]:
+	    local_zip = download_file(download_url)
+	    unzip(local_zip)
 
-    os.remove(local_zip)
+	    os.remove(local_zip)
 
