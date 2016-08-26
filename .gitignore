@@ -1,2 +1,7 @@
 .idea/*
-data/Emergency_RDS_line.dbf
+
+# Generated dynamically
+data/*
+
+# nohup files
+nohup.out
