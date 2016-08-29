@@ -29,9 +29,6 @@ def insert_into_db():
 		for record in DBF(rds_dbf_path, 'utf-8', [6, 24]):
 			c.execute(insert_sql, (record['LTWN'], record['SN']))
 
-		# Remove generic TOWN HWY <int> records
-		c.execute('DELETE FROM road_names_raw WHERE street_name LIKE "TOWN HWY%"')
-		
 		conn.commit()
 
 	try:
@@ -103,19 +100,20 @@ def tokenize():
 		# multiple sections of MAIN ST. This is GIS data, after all
 		rows = c.execute('SELECT fips, street_name, a.town ' \
 						 'FROM road_names_raw a JOIN town_boundaries_shp b ON a.town = b.town ' \
+						 'WHERE street_name NOT LIKE "TOWN HWY%" AND street_name NOT LIKE "NFR%" '
 						 'GROUP BY street_name, a.town, fips;').fetchall()
 
 		insert_str = ('INSERT INTO words_by_town (fips6, town, word) VALUES (?, ?, ?)')
 
-		skip_words = ['ROUTE', 'VT', 'INTERSTATE', 'US', 'STATE', 'HWY', 'EXT', 'ENT', 'SFH', 
-					  'EXIT', 'ENTRANCE', 'ST', 'RD', 'THE', 'U', 'TURN']
+		skip_words = ['ROUTE', 'VT', 'INTERSTATE', 'US', 'STATE', 'HWY', 'EXT', 'ENT', 'SFH', 'EAST', 'WEST',
+					  'EXIT', 'ENTRANCE', 'ST', 'RD', 'THE', 'TURN', '2A', 'PRIVATE', '22A', 'FR']
 
 		for row in rows:
 			fips6 = row[0]
 			word_list = row[1].split()
 			town = row[2]
 
-			word_list = filter(lambda w: w not in skip_words, word_list)
+			word_list = filter(lambda w: len(w) > 1 and w not in skip_words, word_list)
 
 			for word in word_list:
 

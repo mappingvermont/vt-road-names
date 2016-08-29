@@ -56,7 +56,7 @@ def add_attributes_to_geojson(geojson_path, fips6_dict):
 
 	# To test
 	cmd = ['cat data/town_boundaries.geojson | simplify-geojson -t 0.01 | geojsonio']
-	# subprocess.check_call(cmd, shell=True)
+	subprocess.check_call(cmd, shell=True)
 
 
 def tabluate_result_by_FIPS():
@@ -97,7 +97,7 @@ def tabluate_result_by_FIPS():
 
 def to_topojson():
 
-	cmd = ['topojson', '-o', 'output.json', '--simplify-proportion', '.2', 
+	cmd = ['topojson', '-o', 'output.json', '-p', '--simplify-proportion', '.2', 
 		   '--id-property=FIPS6', 'data/town_boundaries.geojson']
 	
 	subprocess.check_call(cmd)
