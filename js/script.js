@@ -1,43 +1,55 @@
 	
 
-	var Esri_WorldTopoMap = L.tileLayer('http://server.arcgisonline.com/ArcGIS/rest/services/World_Topo_Map/MapServer/tile/{z}/{y}/{x}', {
-		attribution: 'Tiles &copy; Esri'
+	var CartoDB_Positron = L.tileLayer('http://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}.png', {
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a> &copy; <a href="http://cartodb.com/attributions">CartoDB</a>',
+		subdomains: 'abcd',
+		maxZoom: 19
 	});
-    var map = L.map('map', {layers: [Esri_WorldTopoMap], center: new L.LatLng(43.9, -72), zoom: 8});
+
+    var map = L.map('map', {layers: [CartoDB_Positron], center: new L.LatLng(43.9, -72), zoom: 8});
 	  	
 	function buildPopup(feature, layer) {
 
 		var divNode = document.createElement('DIV');
 
-		var popup = "<div class='popup_box_header'><strong>Company: " + feature.properties.Companies + "</strong></div>";
+		var popup = "<div class='popup_box_header'><strong>" + feature.properties.town + ": " + titleCase(feature.properties.result)+ "</strong></div>";
 		popup += "<hr />";
-		popup += "Address: " + feature.properties.town + "<br />";
-		popup += "Opened: " + feature.properties.result + "<br />";
 
-/*
-		if (feature.properties.Status == 'Closed') {
-			popup += "Closed: " + feature.properties.Closed + "<br />";
-		} else {
-			popup += "Status: " + feature.properties.Status + "<br />";
+		var wc = feature.properties.word_count
+
+		for (i = 0; i < wc.length; i++) { 
+			popup += titleCase(wc[i].word) + ": " + wc[i].count + "<br>";
 		}
 
-		if (feature.properties.Notes) {
-			popup += "Notes: " + feature.properties.Notes + "<br />";
-		}
-
-		popup += "<hr />";
-		popup += "<img style='height:auto; width:auto; max-width:300px; max-height:300px;' src=" + "." + feature.properties.image + ">";
-		popup += "<hr />" + "Photo Credit: " + feature.properties.Photo + "<br />";
-		popup += "</div>";
-
-		// Important to include this so the HTML is built first, then given to the popup
-		// Allows the images to be resized properly, and Leaflet to know exactly how big the popup is
-*/
 		divNode.innerHTML = popup
 		layer.bindPopup(divNode, {maxWidth:450, autoPan:true})
 
-
 	}
+
+	function style_poly(layer) {
+
+		var styles = {
+			'HILL': '#4daf4a',
+			'FARM': '#e41a1c',
+			'BROOK': '#377eb8',
+			'POND': '#984ea3',
+			'Tie': '#999999',
+			'other': '#ff7f00'
+
+		}
+
+		var style_color = (styles[layer.feature.properties.result] || styles['other']);
+
+		layer.setStyle({color:style_color,
+                		fill:style_color,
+                		weight: 1,
+						})
+	}
+
+	function titleCase(str)
+		{
+		    return str.replace(/\w\S*/g, function(txt){return txt.charAt(0).toUpperCase() + txt.substr(1).toLowerCase();});
+		}
 
 	function getMarkerColor(feature)  {
  
@@ -54,36 +66,22 @@
  	
  	return myIcon
 };
-		
-	var addJSON = new L.GeoJSON.AJAX(["./stations.geojson"],{
-
-		 onEachFeature: function (feature, layer) {
-			buildPopup(feature, layer);
-
-        },
-
-        pointToLayer: function (feature, latlng) {
-        	return L.marker(latlng, {icon: getMarkerColor(feature)});
-        }
-		
-		}).addTo(map);
-
 
     var townLayer = omnivore.topojson('../output.json')
 
       .on('ready', function() {
 
       	//Source: https://www.mapbox.com/mapbox.js/example/v1.0.0/omnivore-kml-tooltip/
+      	//Also: https://bl.ocks.org/mpmckenna8/60910c22b47777967704
 
         // After the 'ready' event fires, the GeoJSON contents are accessible
         // and you can iterate through layers to bind custom popups.
         townLayer.eachLayer(function(layer) {
 
+        	style_poly(layer);
+
         	buildPopup(layer.feature, layer);
-            // See the `.bindPopup` documentation for full details. This
-            // dataset has a property called `name`: your dataset might not,
-            // so inspect it and customize to taste.
-            //layer.bindPopup(layer.feature.result);
+
         });
     })
 
