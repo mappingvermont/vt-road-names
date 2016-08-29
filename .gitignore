@@ -1,7 +1,7 @@
 .idea/*
 
 # Generated dynamically
-data/*
+data/source/*
 
 # nohup files
 nohup.out

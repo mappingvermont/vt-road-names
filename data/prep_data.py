@@ -4,15 +4,14 @@ import sqlite3
 from dbfread import DBF
 
 
-root_dir = os.path.dirname(__file__)
-data_dir = os.path.join(root_dir, 'data')
+data_dir = os.path.dirname(__file__)
+source_dir = os.path.join(data_dir, 'source')
 
 db_path = os.path.join(data_dir, 'data.db')
 conn = sqlite3.connect(db_path)
 c = conn.cursor()
 
 def insert_into_db():
-
 
 	try:
 		c.execute('SELECT * FROM road_names_raw LIMIT 10')
@@ -21,7 +20,7 @@ def insert_into_db():
 		print 'Creating table road_names_raw'
 		c.execute('CREATE TABLE road_names_raw (id integer primary key autoincrement, town text, street_name text)')
 
-		rds_dbf_path = os.path.join(data_dir, 'Emergency_RDS_line.dbf')
+		rds_dbf_path = os.path.join(source_dir, 'Emergency_RDS_line.dbf')
 		insert_sql = 'INSERT INTO road_names_raw (town, street_name) VALUES (?,?)'
 
 	    # pull only columns 6 and 24
@@ -39,7 +38,7 @@ def insert_into_db():
 		print 'Creating table town_boundaries_shp and inserting FIPS6 and townname data'
 		c.execute('CREATE TABLE town_boundaries_shp (id integer primary key autoincrement, fips text, town text)')
 
-		town_dbf_path = os.path.join(data_dir, 'Boundary_TWNBNDS_poly.dbf')
+		town_dbf_path = os.path.join(source_dir, 'Boundary_TWNBNDS_poly.dbf')
 		insert_sql = 'INSERT INTO town_boundaries_shp (fips, town) VALUES (?,?)'
 
 	    # pull only columns 6 and 24
@@ -100,13 +99,19 @@ def tokenize():
 		# multiple sections of MAIN ST. This is GIS data, after all
 		rows = c.execute('SELECT fips, street_name, a.town ' \
 						 'FROM road_names_raw a JOIN town_boundaries_shp b ON a.town = b.town ' \
-						 'WHERE street_name NOT LIKE "TOWN HWY%" AND street_name NOT LIKE "NFR%" '
+						 'WHERE street_name NOT LIKE "TOWN HWY%" AND street_name NOT LIKE "NFR%" ' \
+						 'AND street_name NOT LIKE "FIRE LANE%" '
 						 'GROUP BY street_name, a.town, fips;').fetchall()
 
 		insert_str = ('INSERT INTO words_by_town (fips6, town, word) VALUES (?, ?, ?)')
 
 		skip_words = ['ROUTE', 'VT', 'INTERSTATE', 'US', 'STATE', 'HWY', 'EXT', 'ENT', 'SFH', 'EAST', 'WEST',
-					  'EXIT', 'ENTRANCE', 'ST', 'RD', 'THE', 'TURN', '2A', 'PRIVATE', '22A', 'FR']
+					  'EXIT', 'ENTRANCE', 'ST', 'RD', 'THE', 'TURN', '2A', 'PRIVATE', '22A', 'FR', 'DR', 'UNNAMED']
+
+		town_names = [r[0] for r in c.execute('SELECT town FROM town_boundaries_shp').fetchall()]
+
+		# Don't want to include town names in final results
+		skip_words += town_names
 
 		for row in rows:
 			fips6 = row[0]

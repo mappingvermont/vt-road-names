@@ -3,11 +3,11 @@ import requests
 import zipfile
 
 
-root_dir = os.path.dirname(__file__)
-data_dir = os.path.join(root_dir, 'data')
+data_dir = os.path.dirname(__file__)
+source_dir = os.path.join(data_dir, 'source')
 
-if not os.path.exists(data_dir):
-	os.mkdir(data_dir)
+if not os.path.exists(source_dir):
+	os.mkdir(source_dir)
 
 rds_url = r'http://maps.vcgi.vermont.gov/gisdata/vcgi/packaged_zips/EmergencyE911_RDS.zip'
 town_boundary_url = r'http://maps.vcgi.vermont.gov/gisdata/vcgi/packaged_zips/BoundaryTown_TWNBNDS.zip'
@@ -17,7 +17,7 @@ def download_file(url):
 	# Source: http://stackoverflow.com/questions/16694907/
 
     local_filename = url.split('/')[-1]
-    local_path = os.path.join(data_dir, local_filename)
+    local_path = os.path.join(source_dir, local_filename)
     print 'Starting download for {0}'.format(local_filename)
 
     # NOTE the stream=True parameter

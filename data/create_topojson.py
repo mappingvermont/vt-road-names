@@ -2,10 +2,11 @@ import os
 import sqlite3
 import json
 import subprocess
+from collections import Counter
 
 
-root_dir = os.path.dirname(__file__)
-data_dir = os.path.join(root_dir, 'data')
+data_dir = os.path.dirname(__file__)
+source_dir = os.path.join(data_dir, 'source')
 
 db_path = os.path.join(data_dir, 'data.db')
 conn = sqlite3.connect(db_path)
@@ -13,7 +14,7 @@ c = conn.cursor()
 
 def shape_to_geojson():
 
-	shp_path = os.path.join(data_dir, 'Boundary_TWNBNDS_poly.shp')
+	shp_path = os.path.join(source_dir, 'Boundary_TWNBNDS_poly.shp')
 	geojson_path = os.path.join(data_dir, 'town_boundaries.geojson')
 
 	# Need to remove this first, ogr2ogr can't -overwrite geojson
@@ -28,6 +29,8 @@ def shape_to_geojson():
 
 def add_attributes_to_geojson(geojson_path, fips6_dict):
 
+	result_list = []
+
 	with open(geojson_path, 'r') as geojson_file:
 		data = json.load(geojson_file)
 
@@ -36,16 +39,20 @@ def add_attributes_to_geojson(geojson_path, fips6_dict):
 			feature_fips = feature['properties']['FIPS6']
 			feature_town = feature['properties']['TOWNNAME'].title()
 
-			word_count_result_list = fips6_dict[feature_fips]
+			# Format it like this to make it friendlier for javascript
+			# Harder in javascript to grab keys and values-- much easier to call obj.word and obj.count
+			word_count_result_list = [{'word': x.keys()[0], 'count': x.values()[0]} for x in fips6_dict[feature_fips]]
 			
 			# Determine if there's a tie in the top counts for the top two words
 			top_two_results = word_count_result_list[0:2]
-			top_two_counts = [d.values()[0] for d in top_two_results]
+			top_two_counts = [d['count'] for d in top_two_results]
 
 			if len(set(top_two_counts)) == 1:
 				final_result = 'Tie'
 			else:
-				final_result = word_count_result_list[0].keys()[0]
+				final_result = word_count_result_list[0]['word']
+
+			result_list.append(final_result)
 
 			# Overwrite properties
 			feature['properties'] = {'word_count': word_count_result_list, 'town': feature_town, 
@@ -53,6 +60,9 @@ def add_attributes_to_geojson(geojson_path, fips6_dict):
 
 	with open(geojson_path, 'w') as outfile:
 		json.dump(data, outfile)
+
+	print 'Final results: '
+	print Counter(result_list)
 
 	# To test
 	cmd = ['cat data/town_boundaries.geojson | simplify-geojson -t 0.01 | geojsonio']
@@ -88,8 +98,9 @@ def tabluate_result_by_FIPS():
 		except KeyError:
 			fips6_dict[fips6] = [{word: word_count}]
 
-	# Add Warners Grant FIPS: No roads within this boundary
+	# Add Warners Grant and Glastenbury FIPS: no valid road names
 	fips6_dict[9090] = [{'None': 0}]
+	fips6_dict[3018] = [{'None': 0}]
 
 	return fips6_dict
 
