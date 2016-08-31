@@ -6,7 +6,7 @@
 		maxZoom: 19
 	});
 
-    var map = L.map('map', {layers: [CartoDB_Positron], center: new L.LatLng(43.9, -72), zoom: 8});
+    var map = L.map('map', {layers: [CartoDB_Positron], center: new L.LatLng(43.9, -72.4), zoom: 8});
 	  	
 	function buildPopup(feature, layer) {
 
@@ -92,7 +92,7 @@
     .addTo(map);
 
 
-	var legend = L.control({position: 'bottomleft'});
+	var legend = L.control({position: 'bottomright'});
 
 		legend.onAdd = function (map) {
 
@@ -113,28 +113,3 @@
 		legend.addTo(map);
 	
 
-// Toggle for 'About this map' and X buttons
-// Only visible on mobile
-isVisibleDescription = false;
-// Grab header, then content of sidebar
-sidebarHeader = $('.sidebar_header').html();
-sidebarContent = $('.sidebar_content').html();
-// Then grab credit information
-creditsContent = $('.leaflet-control-attribution').html();
-$('.toggle_description').click(function() {
-	if (isVisibleDescription === false) {
-		$('.description_box_cover').show();
-		// Add Sidebar header into our description box
-		// And 'Scroll to read more...' text on wide mobile screen
-		$('.description_box_header').html(sidebarHeader + '<div id="scroll_more"><strong>Scroll to read more...</strong></div>');
-		// Add the rest of our sidebar content, credit information
-		$('.description_box_text').html(sidebarContent + '<br />');
-		$('#caption_box').html('Credits: ' + creditsContent);
-		$('.description_box').show();
-		isVisibleDescription = true;
-	} else {
-		$('.description_box').hide();
-		$('.description_box_cover').hide();
-		isVisibleDescription = false;
-	}
-});

@@ -3,40 +3,27 @@
 <html lang="en">
 <head>
 <head>
-	<title>Road Name Frequency by Town</title>
+	<title>Most Common Road Name by Town</title>
 	<meta charset="utf-8" />
 	<meta http-equiv="X-UA-Compatible" content="IE=EDGE" />
 
-    <!-- Mobile meta tags-->
-    <meta name="HandheldFriendly" content="True">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
-	<meta name="MobileOptimized" content="320"/>
-	<meta name="apple-mobile-web-app-capable" content="yes">
-	<meta http-equiv="cleartype" content="on">
-
 	<!-- CSS -->
 	<link rel="stylesheet" href="css/leaflet.css" />
-	<!--[if lte IE 8]>
-		<link rel="stylesheet" href="css/leaflet.ie.css" />
-	<![endif]-->
-	<link rel="stylesheet" href="css/bootstrap.min.css" />
-	<link rel="stylesheet" href="css/bootstrap-responsive.min.css" />
 	<link rel="stylesheet" href="css/style.css" />
 
 	<script type="text/javascript" src="js/leaflet.js"></script>	
-	<script type="text/javascript" src="js/leaflet.ajax.min.js"></script>	
 	<script src='https://api.mapbox.com/mapbox.js/plugins/leaflet-omnivore/v0.2.0/leaflet-omnivore.min.js'></script>
-    <link rel="stylesheet" href="//code.jquery.com/ui/1.10.4/themes/smoothness/jquery-ui.css">
-
-	<script src="//code.jquery.com/jquery-1.10.2.js"></script>
-	<script src="//code.jquery.com/ui/1.10.4/jquery-ui.js"></script>
 
 	<style>
-	
+
 		.legend {
+			padding: 10px; 
+			border-radius: 10px;
 			text-align: left;
 			line-height: 18px;
 			color: #555;
+			background-color: white;
+
 		}
 		.legend i {
 			width: 18px;
@@ -49,43 +36,6 @@
 	
 </head>
 <body>
-
-    <noscript>
-		<div id="noscript_note">
-			You must have JavaScript enabled to view this page.
-		</div>
-	</noscript>
-
-	<div id="sidebar">
-		<div class="sidebar_header">
-			<h3>DC Fire Stations</h3>
-		</div>
-		<div class="sidebar_content">
-			 I'm not much into architecture, but fire stations always stick out to me. The tall bays for the trucks, the upstairs living quarters, and the requiste fire pole are all interesting design constraints for any building. 
-			 <br><br>
-			 DC seems to have preserved a number of historic fire houses-- used now as restaurants, apartments and gyms.
-			 <br><br>
-			 I'd planned to track down and photograph each fire station and map them, but Mike Legeros has already documented them  <a href="http://legeros.com/history/dc/" target="_blank">here</a>. Thanks Mike!
-			 <br><br>
-			 Built by <a href="http://www.mappingvermont.org" target="blank">MappingVermont</a>. 
-		</div>
-	</div>
-
-	<div class="toggle_description btn" type="button">
-		About this map
-	</div>
-
-	<div class="description_box">
-		<div class="x_button toggle_description btn btn-primary" type="button">
-			<strong>X</strong>
-		</div>
-		<div class="description_box_header"></div>
-		<div class="description_box_content">
-			<div class="description_box_text"></div>
-			<div id="caption_box"></div>
-		</div>
-	</div>
-	<div class="description_box_cover"></div>
 	
 	<div id="map"></div>
 
