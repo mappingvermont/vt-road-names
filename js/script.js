@@ -26,9 +26,9 @@
 
 	}
 
-	function style_poly(layer) {
+	var results = ['HILL', 'FARM', 'BROOK', 'POND', 'Tie', 'other']
 
-		var styles = {
+	var styles = {
 			'HILL': '#4daf4a',
 			'FARM': '#e41a1c',
 			'BROOK': '#377eb8',
@@ -37,6 +37,10 @@
 			'other': '#ff7f00'
 
 		}
+
+	function style_poly(layer) {
+
+
 
 		var style_color = (styles[layer.feature.properties.result] || styles['other']);
 
@@ -86,6 +90,27 @@
     })
 
     .addTo(map);
+
+
+	var legend = L.control({position: 'bottomleft'});
+
+		legend.onAdd = function (map) {
+
+			var div = L.DomUtil.create('div', 'info legend'),
+				labels = [];
+
+			labels.push('<strong>Most Common Road Name</strong>')
+
+			for (var i = 0; i < results.length; i++) {
+
+				labels.push('<i style="background:' + styles[results[i]] + '"></i>' + ' ' + titleCase(results[i]) );
+			}
+
+			div.innerHTML = labels.join('<br>');
+			return div;
+		};
+
+		legend.addTo(map);
 	
 
 // Toggle for 'About this map' and X buttons
