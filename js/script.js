@@ -71,7 +71,7 @@
  	return myIcon
 };
 
-    var townLayer = omnivore.topojson('../output.json')
+    var townLayer = omnivore.topojson('output.json')
 
       .on('ready', function() {
 
